@@ -3,15 +3,16 @@ import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 
-# --- الإعدادات ---
-# تم إضافة التوكن الخاص بك هنا
+# --- الإعدادات المحدثة ---
 BOT_TOKEN = '7694598160:AAEQ_B1hPM3IgyVdMJqkcL6dCn71n1ily6k'
-BACKEND_URL = 'http://127.0.0.1:8000'
-# !!! تم تحديث اسم القناة بنجاح !!!
+BACKEND_URL = 'https://myvideobot-8cr6.onrender.com'
 FORCED_JOIN_CHANNEL = '@VidGrabChannel' 
 
 # --- دوال مساعدة ---
 async def check_user_membership(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """
+    للتحقق مما إذا كان المستخدم عضواً في القناة.
+    """
     try:
         member = await context.bot.get_chat_member(chat_id=FORCED_JOIN_CHANNEL, user_id=user_id)
         return member.status in ['member', 'administrator', 'creator']
@@ -19,9 +20,15 @@ async def check_user_membership(user_id: int, context: ContextTypes.DEFAULT_TYPE
 
 # --- معالجات الأوامر ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    يتم استدعاؤها عند إرسال المستخدم للأمر /start
+    """
     await update.message.reply_text('أهلاً بك! أرسل لي رابط أي فيديو وسأقوم بتحميله لك.')
 
 async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    تتعامل مع الروابط التي يرسلها المستخدم.
+    """
     url = update.message.text
     msg = await update.message.reply_text('⏳ جاري تحليل الرابط...')
 
@@ -51,6 +58,9 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             await msg.edit_text(f'حدث خطأ: {e}')
 
 async def feature_button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    يتم استدعاؤها عند الضغط على زر الجودة، وتعرض واجهة الإعلان.
+    """
     query = update.callback_query
     await query.answer()
     
@@ -69,6 +79,9 @@ async def feature_button_callback(update: Update, context: ContextTypes.DEFAULT_
     await query.message.edit_text('الخطوة 1: شاهد الإعلان. \nالخطوة 2: اضغط متابعة.', reply_markup=reply_markup)
 
 async def proceed_download_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    يتم استدعاؤها بعد "مشاهدة" الإعلان، للتحقق من الانضمام والبدء بالتحميل.
+    """
     query = update.callback_query
     await query.answer()
     
@@ -112,6 +125,9 @@ async def proceed_download_callback(update: Update, context: ContextTypes.DEFAUL
             await query.message.edit_text(f'فشل الطلب: {e}')
 
 def main() -> None:
+    """
+    الدالة الرئيسية لتشغيل البوت.
+    """
     application = Application.builder().token(BOT_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
