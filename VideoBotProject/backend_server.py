@@ -108,17 +108,17 @@ async def show_ad_page(feature: str):
 @app.get("/get_info")
 async def get_video_info(url: str):
     try:
-        ydl_opts = {{'quiet': True, 'skip_download': True}}
+        ydl_opts = {'quiet': True, 'skip_download': True}
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             formats = []
             for f in info.get('formats', []):
                 if f.get('vcodec') != 'none' and f.get('acodec') != 'none' and f.get('ext') == 'mp4':
-                    formats.append({{
+                    formats.append({
                         'format_id': f.get('format_id'), 'resolution': f.get('format_note'),
                         'filesize': f.get('filesize') or f.get('filesize_approx'), 'ext': f.get('ext')
-                    }})
-            return {{"title": info.get('title'), "formats": formats}}
+                    })
+            return {"title": info.get('title'), "formats": formats}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -126,11 +126,11 @@ async def get_video_info(url: str):
 async def download_video(url: str, format_id: str):
     try:
         output_template = os.path.join(DOWNLOADS_DIR, f'%(id)s_{format_id}.%(ext)s')
-        ydl_opts = {{'format': format_id, 'outtmpl': output_template, 'quiet': True}}
+        ydl_opts = {'format': format_id, 'outtmpl': output_template, 'quiet': True}
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
-        if os.path.exists(filename): return {{"file_path": filename}}
+        if os.path.exists(filename): return {"file_path": filename}
         else: raise HTTPException(status_code=500, detail="Failed to download video file.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -139,15 +139,15 @@ async def download_video(url: str, format_id: str):
 async def convert_to_mp3(url: str):
     try:
         output_template = os.path.join(DOWNLOADS_DIR, f'%(id)s.%(ext)s')
-        ydl_opts = {{
+        ydl_opts = {
             'format': 'bestaudio/best',
-            'postprocessors': [{{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}}],
+            'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}],
             'outtmpl': output_template, 'quiet': True
-        }}
+        }
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info).replace(info['ext'], 'mp3')
-        if os.path.exists(filename): return {{"file_path": filename}}
+        if os.path.exists(filename): return {"file_path": filename}
         else: raise HTTPException(status_code=500, detail="Failed to convert to MP3.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
