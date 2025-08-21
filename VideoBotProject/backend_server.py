@@ -28,12 +28,7 @@ if not os.path.exists(DOWNLOADS_DIR):
 # --- دوال مساعدة للإعدادات ---
 def get_config():
     if not os.path.exists(CONFIG_FILE):
-        default_config = {
-            "default": "https://www.google.com",
-            "720p": "",
-            "1080p": "",
-            "mp3": ""
-        }
+        default_config = { "default": "https://www.google.com", "720p": "", "1080p": "" }
         set_config(default_config)
         return default_config
     with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
@@ -42,10 +37,6 @@ def get_config():
 def set_config(config_data):
     with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
         json.dump(config_data, f, indent=4, ensure_ascii=False)
-
-# --- نماذج Pydantic ---
-class AdsConfigPayload(BaseModel):
-    config: Dict[str, str]
 
 # --- نقاط الوصول (Endpoints) للوحة التحكم ---
 @app.get("/get_ads_config")
@@ -60,56 +51,13 @@ async def set_ads_config(payload: Dict[str, str]):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"فشل تحديث الإعدادات: {e}")
 
-# --- نقطة وصول جديدة لصفحة الإعلان مع عداد ---
+# --- نقطة وصول لصفحة الإعلان مع عداد ---
 @app.get("/show_ad_page", response_class=HTMLResponse)
 async def show_ad_page(feature: str):
     config = get_config()
     ad_url = config.get(feature) or config.get("default", "https://google.com")
-
     html_content = f"""
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>عرض الإعلان</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-    </head>
-    <body class="bg-gray-900 text-white flex flex-col items-center justify-center h-screen font-sans p-4">
-        <div class="text-center">
-            <h1 id="timer-message" class="text-2xl font-bold text-yellow-400 mb-4">
-                يجب الانتظار <span id="countdown">30</span> ثانية للمتابعة...
-            </h1>
-            <p id="success-message" class="text-xl font-bold text-green-400 hidden">
-                ✅ شكراً لك! يمكنك الآن إغلاق هذه النافذة والعودة إلى البوت للضغط على زر المتابعة.
-            </p>
-        </div>
-
-        <div class="w-full max-w-lg h-3/5 my-8 border-4 border-gray-700 rounded-lg overflow-hidden bg-gray-800">
-            <iframe src="{ad_url}" class="w-full h-full" frameborder="0">
-                <p>متصفحك لا يدعم IFrames. <a href="{ad_url}" target="_blank" class="text-blue-400">اضغط هنا لزيارة الإعلان</a>.</p>
-            </iframe>
-        </div>
-
-        <script>
-            let seconds = 30;
-            const countdownElement = document.getElementById('countdown');
-            const timerMessage = document.getElementById('timer-message');
-            const successMessage = document.getElementById('success-message');
-
-            const interval = setInterval(() => {{
-                seconds--;
-                countdownElement.textContent = seconds;
-
-                if (seconds <= 0) {{
-                    clearInterval(interval);
-                    timerMessage.classList.add('hidden');
-                    successMessage.classList.remove('hidden');
-                }}
-            }}, 1000);
-        </script>
-    </body>
-    </html>
+    <!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>عرض الإعلان</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-gray-900 text-white flex flex-col items-center justify-center h-screen font-sans p-4"><div class="text-center"><h1 id="timer-message" class="text-2xl font-bold text-yellow-400 mb-4">يجب الانتظار <span id="countdown">30</span> ثانية للمتابعة...</h1><p id="success-message" class="text-xl font-bold text-green-400 hidden">✅ شكراً لك! يمكنك الآن إغلاق هذه النافذة والعودة إلى البوت للضغط على زر المتابعة.</p></div><div class="w-full max-w-lg h-3/5 my-8 border-4 border-gray-700 rounded-lg overflow-hidden bg-gray-800"><iframe src="{ad_url}" class="w-full h-full" frameborder="0"></iframe></div><script>let seconds = 30;const countdownElement = document.getElementById('countdown');const timerMessage = document.getElementById('timer-message');const successMessage = document.getElementById('success-message');const interval = setInterval(() => {{seconds--;countdownElement.textContent = seconds;if (seconds <= 0) {{clearInterval(interval);timerMessage.classList.add('hidden');successMessage.classList.remove('hidden');}}}}, 1000);</script></body></html>
     """
     return HTMLResponse(content=html_content)
 
@@ -143,24 +91,5 @@ async def download_video(url: str, format_id: str):
             return {"file_path": filename}
         else:
             raise HTTPException(status_code=500, detail="Failed to download video file.")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/convert_to_mp3")
-async def convert_to_mp3(url: str):
-    try:
-        output_template = os.path.join(DOWNLOADS_DIR, f'%(id)s.%(ext)s')
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}],
-            'outtmpl': output_template, 'quiet': True
-        }
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info).replace(info['ext'], 'mp3')
-        if os.path.exists(filename):
-            return {"file_path": filename}
-        else:
-            raise HTTPException(status_code=500, detail="Failed to convert to MP3.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
