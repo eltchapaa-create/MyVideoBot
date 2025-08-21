@@ -47,7 +47,9 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             await msg.edit_text(f"اختر الجودة المطلوبة لـ:\n*{data.get('title')}*", reply_markup=reply_markup, parse_mode='Markdown')
 
         except Exception as e:
-            await msg.edit_text(f'حدث خطأ: {e}')
+            # !!! هذا هو السطر الجديد والمهم لكشف الخطأ !!!
+            print(f"AN ERROR OCCURRED: {e}") 
+            await msg.edit_text(f'حدث خطأ أثناء الاتصال بالخادم.')
 
 async def feature_button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -96,7 +98,8 @@ async def proceed_download_callback(update: Update, context: ContextTypes.DEFAUL
             os.remove(file_path)
             
         except Exception as e:
-            await query.message.edit_text(f'فشل الطلب: {e}')
+            print(f"DOWNLOAD ERROR: {e}")
+            await query.message.edit_text(f'فشل الطلب.')
 
 def main() -> None:
     application = Application.builder().token(BOT_TOKEN).build()
