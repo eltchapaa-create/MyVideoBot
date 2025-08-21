@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم البوت الشاملة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen py-10">
+
+    <div class="w-full max-w-2xl bg-gray-800 rounded-lg shadow-lg p-8">
+        <h1 class="text-3xl font-bold text-center mb-6">لوحة التحكم الشاملة</h1>
+        <p class="text-center text-gray-400 mb-8">إدارة روابط الإعلانات لكل ميزة وجودة على حدة.</p>
+
+        <div id="settings-form" class="space-y-6">
+            <!-- سيتم إضافة حقول الإدخال هنا ديناميكياً -->
+        </div>
+
+        <button id="saveButton" class="w-full mt-8 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            حفظ جميع التغييرات
+        </button>
+
+        <div id="messageBox" class="mt-6 text-center text-sm font-medium"></div>
+    </div>
+
+    <script>
+        // قم بتغيير هذا الرابط إذا كان الخادم يعمل على عنوان مختلف
+        const BACKEND_URL = 'http://127.0.0.1:8000';
+
+        const settingsForm = document.getElementById('settings-form');
+        const saveButton = document.getElementById('saveButton');
+        const messageBox = document.getElementById('messageBox');
+
+        // تعريف الحقول التي نريدها في لوحة التحكم
+        const fields = [
+            { key: 'default', label: 'رابط الإعلان الافتراضي (مهم)' },
+            { key: '720p', label: 'رابط إعلان جودة 720p' },
+            { key: '1080p', label: 'رابط إعلان جودة 1080p' },
+            { key: 'mp3', label: 'رابط إعلان التحويل إلى MP3' },
+            // يمكنك إضافة المزيد من الحقول هنا في المستقبل
+        ];
+
+        // 1. بناء حقول الإدخال ديناميكياً
+        function buildForm() {
+            fields.forEach(field => {
+                const fieldHtml = `
+                    <div>
+                        <label for="${field.key}" class="block text-sm font-medium text-gray-300 mb-2">${field.label}</label>
+                        <input type="url" id="${field.key}" data-key="${field.key}" placeholder="https://example.com/ad" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                    </div>
+                `;
+                settingsForm.innerHTML += fieldHtml;
+            });
+        }
+
+        // 2. عند تحميل الصفحة، قم بجلب الإعدادات الحالية من الخادم
+        async function getCurrentConfig() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/get_ads_config`);
+                if (!response.ok) throw new Error('فشل في جلب الإعدادات الحالية.');
+                
+                const config = await response.json();
+                
+                fields.forEach(field => {
+                    const inputElement = document.getElementById(field.key);
+                    if (inputElement && config[field.key]) {
+                        inputElement.value = config[field.key];
+                    }
+                });
+
+            } catch (error) {
+                showMessage(`خطأ: ${error.message}`, 'error');
+            }
+        }
+
+        // 3. عند الضغط على زر الحفظ، قم بإرسال الإعدادات الجديدة للخادم
+        async function saveConfig() {
+            const newConfig = {};
+            document.querySelectorAll('#settings-form input').forEach(input => {
+                newConfig[input.dataset.key] = input.value.trim();
+            });
+
+            if (!newConfig.default) {
+                showMessage('حقل الإعلان الافتراضي لا يمكن أن يكون فارغاً.', 'error');
+                return;
+            }
+
+            saveButton.disabled = true;
+            saveButton.textContent = 'جاري الحفظ...';
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/set_ads_config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newConfig),
+                });
+
+                if (!response.ok) throw new Error('فشل في حفظ الإعدادات الجديدة.');
+
+                const data = await response.json();
+                showMessage(data.message, 'success');
+            } catch (error) {
+                showMessage(`خطأ: ${error.message}`, 'error');
+            } finally {
+                saveButton.disabled = false;
+                saveButton.textContent = 'حفظ جميع التغييرات';
+            }
+        }
+
+        // 4. دالة لعرض الرسائل للمستخدم
+        function showMessage(text, type) {
+            messageBox.textContent = text;
+            messageBox.className = `mt-6 text-center text-sm font-medium ${type === 'success' ? 'text-green-400' : 'text-red-400'}`;
+        }
+
+        // ربط الأحداث
+        document.addEventListener('DOMContentLoaded', () => {
+            buildForm();
+            getCurrentConfig();
+        });
+        saveButton.addEventListener('click', saveConfig);
+    </script>
+
+</body>
+</html>
